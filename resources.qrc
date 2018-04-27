@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/img">
+        <file>ge.png</file>
+        <file>titties_to_the_sky</file>
+        <file>img/googlysprite.png</file>
+    </qresource>
+</RCC>
