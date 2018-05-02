@@ -15,13 +15,13 @@
 using namespace std;
 using namespace cv;
 
-vector<Rect> doDetection(Mat input);
+vector<Rect> doDetection(Mat& input);
 vector<Mat> sprites;
-void showImage(Mat mat);
-Mat renderFrame(Mat img,vector<Rect> eyes,Mat eye);
-Mat overlayImage(Mat background, Mat foreground, Point location);
-void renderFromImage(QString filename);
-void renderFromVideo(QString filename);
+void showImage(Mat& mat);
+Mat renderFrame(Mat& img,vector<Rect>& eyes,Mat& eye);
+Mat overlayImage(Mat& background, Mat& foreground, Point location);
+void renderFromImage(QString& filename);
+void renderFromVideo(QString& filename);
 QFileInfo fileInfo;
 
 int main(int argc, char *argv[])
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
     //return a.exec();
 }
 
-void renderFromImage(QString filename) {
+void renderFromImage(QString& filename) {
     VideoWriter vw;
     Mat image = imread(filename.toStdString(),IMREAD_ANYCOLOR);
     vw.open("/home/fatty/test.mp4",CV_FOURCC('X','2','6','4'),20.0,Size(image.cols,image.rows),true);
@@ -97,7 +97,7 @@ void renderFromImage(QString filename) {
     vw.release();
 }
 
-void renderFromVideo(QString filename) {
+void renderFromVideo(QString& filename) {
 
     VideoCapture vc(filename.toStdString());
     int codec = static_cast<int>(vc.get(CV_CAP_PROP_FOURCC));
@@ -114,6 +114,7 @@ void renderFromVideo(QString filename) {
     int frameCount=0;
     vector<Rect> eyes;
     cerr << "Beggining processing..." << endl;
+    namedWindow("VIDJAS YALL");
     for(;;) {
         vc >> inFrame;
         if (inFrame.empty()) {
@@ -121,10 +122,12 @@ void renderFromVideo(QString filename) {
         }
         eyes = doDetection(inFrame);
         if (!eyes.empty()) {
-            vw << renderFrame(inFrame,eyes,sprites[frameCount % 5]);
+            Mat f = renderFrame(inFrame,eyes,sprites[frameCount % 5]);
+            vw << f;
         } else {
             vw << inFrame;
         }
+
         frameCount++;
         if (frameCount % 20==0) {
             cerr << "Rendering frame " << frameCount << " of " << frames << "(" << (double)((frameCount/frames)*100) << "%)" << endl;
@@ -133,7 +136,7 @@ void renderFromVideo(QString filename) {
     vw.release();
 }
 
-Mat renderFrame(Mat img,vector<Rect> eyes,Mat eye) {
+Mat renderFrame(Mat& img,vector<Rect>& eyes,Mat& eye) {
     Mat background;
     Mat final;
     if (img.channels()!=eye.channels()) {
@@ -155,13 +158,13 @@ Mat renderFrame(Mat img,vector<Rect> eyes,Mat eye) {
     return final;
 }
 
-void showImage(Mat mat) {
+void showImage(Mat& mat) {
     namedWindow("wat",WINDOW_AUTOSIZE);
     imshow("wat",mat);
     waitKey(0);
 }
 
-vector<Rect> doDetection(Mat input) {
+vector<Rect> doDetection(Mat& input) {
 
     Mat grayScale;
     cvtColor( input, grayScale, CV_BGR2GRAY );
@@ -170,26 +173,26 @@ vector<Rect> doDetection(Mat input) {
     vector<Rect> allEyes;
 
     CascadeClassifier face("/usr/share/opencv/haarcascades/haarcascade_frontalface_alt.xml");
-    CascadeClassifier eyes("/usr/share/opencv/haarcascades/haarcascade_eye_tree_eyeglasses.xml");
+    CascadeClassifier eyes("/usr/share/opencv/haarcascades/haarcascade_eye.xml");
 
-   //face.detectMultiScale(grayScale,faces);//, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, Size(30, 30) );
-    //foreach (Rect foundFace,faces) {
+    face.detectMultiScale(grayScale,faces, 1.1, 2, 0|CV_HAAR_SCALE_IMAGE, Size(30, 30) );
+    foreach (Rect foundFace,faces) {
 
         vector<Rect> eyeBallses;
-        eyes.detectMultiScale(input,eyeBallses);
-        /*
+        eyes.detectMultiScale(grayScale(foundFace),eyeBallses,2, 2.0, 1.0 );
+
         foreach (Rect eye,eyeBallses) {
             eye.x+=foundFace.x;
             eye.y+=foundFace.y;
             allEyes.push_back(eye);
         }
-    }*/
+    }
 
-    return eyeBallses;
+    return allEyes;
 
 }
 
-Mat overlayImage(Mat background, Mat foreground, Point location) {
+Mat overlayImage(Mat& background, Mat& foreground, Point location) {
   Mat output = background.clone();
 
 
